@@ -1,5 +1,3 @@
-import { ReactNode } from "react";
-
 export interface SwaggerPath {
   path: string;
   method: string;
@@ -32,6 +30,14 @@ export interface RequestParams {
   [key: string]: any;
 }
 
+export interface ApiRequest {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  data?: any;
+  params?: any;
+}
+
 export interface ApiResponse {
   status: number;
   statusText: string;
@@ -44,7 +50,9 @@ export interface RequestPanelProps {
   selectedEndpoint: SwaggerPath | null;
   setSelectedEndpoint: (endpoint: SwaggerPath | null) => void;
   requestParams: RequestParams;
-  setRequestParams: (params: RequestParams | ((prev: RequestParams) => RequestParams)) => void;
+  setRequestParams: (
+    params: RequestParams | ((prev: RequestParams) => RequestParams),
+  ) => void;
   executeRequest: () => Promise<void>;
   isLoading: boolean;
 }
