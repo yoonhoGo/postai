@@ -1,0 +1,24 @@
+{
+  "name": "postai",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --import ./ts-node-register.js src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@langchain/core": "^0.3.42",
+    "@langchain/ollama": "^0.2.0",
+    "axios": "^1.8.2",
+    "langchain": "^0.3.19",
+    "swagger-parser": "^10.0.3"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}
