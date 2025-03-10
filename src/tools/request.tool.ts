@@ -10,7 +10,6 @@
  */
 
 import axios, { AxiosError } from "axios";
-import { useConsole } from "./components/ConsolePanel.js";
 import { DynamicTool } from "langchain/tools";
 import { ApiRequest } from "types.js";
 
@@ -28,10 +27,6 @@ export const apiRequestTool = new DynamicTool({
     '실제 API 요청을 수행합니다. API 호출이 필요할 때는 반드시 이 도구를 사용하세요. 코드 작성이 아닌 실제 API 호출만 수행합니다. 입력 형식: JSON 문자열 {"url": "요청URL", "method": "GET|POST|PUT|DELETE", "headers": {}, "data": {}}',
   func: async (inputStr) => {
     try {
-      // const log = useConsole((state) => state.log);
-
-      // log("axios response:" + inputStr);
-
       // 입력 문자열을 JSON으로 파싱
       const input: ApiRequest = JSON.parse(inputStr);
       const {
@@ -54,20 +49,6 @@ export const apiRequestTool = new DynamicTool({
         data,
         params,
       });
-
-      // log(
-      //   "axios response:" +
-      //     JSON.stringify(
-      //       {
-      //         status: response.status,
-      //         statusText: response.statusText,
-      //         headers: response.headers,
-      //         data: response.data,
-      //       },
-      //       null,
-      //       2,
-      //     ),
-      // );
 
       // 성공 응답 형식화 및 반환
       return JSON.stringify(

@@ -1,7 +1,16 @@
+export interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+  codeBlock?: boolean;
+  codeLanguage?: string;
+}
+
 export interface SwaggerPath {
   path: string;
   method: string;
+  operationId?: string;
   summary?: string;
+  description?: string;
   parameters?: SwaggerParameter[];
   requestBody?: any;
 }
@@ -22,14 +31,6 @@ export interface SwaggerData {
   paths: SwaggerPath[];
 }
 
-export interface RequestParams {
-  body?: Record<string, any>;
-  query?: Record<string, any>;
-  path?: Record<string, any>;
-  header?: Record<string, any>;
-  [key: string]: any;
-}
-
 export interface ApiRequest {
   method: string;
   url: string;
@@ -43,16 +44,4 @@ export interface ApiResponse {
   statusText: string;
   headers: Record<string, string>;
   data: any;
-}
-
-export interface RequestPanelProps {
-  swaggerData: SwaggerData;
-  selectedEndpoint: SwaggerPath | null;
-  setSelectedEndpoint: (endpoint: SwaggerPath | null) => void;
-  requestParams: RequestParams;
-  setRequestParams: (
-    params: RequestParams | ((prev: RequestParams) => RequestParams),
-  ) => void;
-  executeRequest: () => Promise<void>;
-  isLoading: boolean;
 }
