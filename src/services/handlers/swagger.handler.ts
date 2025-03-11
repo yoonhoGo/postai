@@ -6,14 +6,32 @@ import { swaggerStorageHandler } from "./swagger-storage.handler.js";
 export async function swaggerHandler(
   userQuery: string,
 ): Promise<ChatMessage[]> {
-  // swagger 저장/불러오기 명령어 처리
-  const storageMatch = userQuery.match(/^swagger\s+(save|load|list)\s*(.*)?$/i);
-  if (storageMatch) {
-    const [_, command, args] = storageMatch;
-    return await swaggerStorageHandler(
-      command.toLowerCase(),
-      args?.trim() || "",
-    );
+  // swagger 명령어 추출
+  const commandMatch = userQuery.match(/^swagger\s+(\S+)/i);
+  if (commandMatch) {
+    const command = commandMatch[1].toLowerCase();
+    // 명령어 이후의 모든 텍스트를 인수로 사용
+    const args = userQuery
+      .substring(userQuery.indexOf(command) + command.length)
+      .trim();
+
+    // 지원하는 명령어인지 확인
+    const supportedCommands = [
+      "save",
+      "load",
+      "list",
+      "loaded",
+      "delete",
+      "remove",
+      "deleteall",
+      "clear",
+      "use",
+      "select",
+    ];
+
+    if (supportedCommands.includes(command)) {
+      return await swaggerStorageHandler(command, args);
+    }
   }
 
   // URL 추출 (단순 정규식)
