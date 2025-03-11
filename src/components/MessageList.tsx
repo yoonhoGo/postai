@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { ChatMessage } from "../types.js";
 import SyntaxHighlight from "ink-syntax-highlight";
+import Markdown from "./Markdown.js";
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -46,7 +47,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                 />
               </Box>
             ) : (
-              <Text wrap="wrap">{message.content}</Text>
+              <Markdown>{message.content}</Markdown>
             )}
           </Box>
         ))
