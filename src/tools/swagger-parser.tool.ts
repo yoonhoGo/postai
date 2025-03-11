@@ -83,7 +83,7 @@ export const swaggerTool = new DynamicTool({
       );
     } catch (error) {
       // 오류 처리 및 메시지 반환
-      throw `Swagger 파싱 오류: ${(<Error>error).message}`;
+      throw new Error("Swagger 파싱 오류", { cause: error });
     }
   },
 });

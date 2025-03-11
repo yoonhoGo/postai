@@ -15,7 +15,7 @@ export async function handleUserQuery(
       return helpHandler();
     }
 
-    // 2. API 문서 로딩 요청 처리
+    // 2. Swagger 관련 명령어 처리 (저장/불러오기 포함)
     if (isSwaggerRelatedQuery(userQuery)) {
       return await swaggerHandler(userQuery);
     }
