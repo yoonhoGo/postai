@@ -9,7 +9,7 @@ POSTAI는 터미널 기반의 인터랙티브 HTTP API 클라이언트입니다.
 - **API 요청 실행**: HTTP 메서드(GET, POST, PUT, DELETE 등) 요청 생성 및 실행
 - **자연어 명령 지원**: AI를 통한 명령어 해석
 
-## 아키텍처
+## [아키텍처](./architecture.md)
 
 POSTAI는 다음과 같은 아키텍처 구조로 구성되어 있습니다:
 
