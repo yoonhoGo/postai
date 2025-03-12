@@ -12,12 +12,11 @@ export async function apiRequestHandler(
 ): Promise<ChatMessage[]> {
   const lowerQuery = userQuery.toLowerCase();
 
-  // 실행 명령 처리
+  // 실행/취소 명령 처리
   if (lowerQuery === "실행" || lowerQuery === "execute") {
     return await executeApiRequest(conversation);
   }
 
-  // 취소 명령 처리
   if (lowerQuery === "취소" || lowerQuery === "cancel") {
     return [
       {
@@ -28,8 +27,20 @@ export async function apiRequestHandler(
     ];
   }
 
-  // 새 API 요청 처리 (GET, POST 등으로 시작하는 요청)
-  return await createApiRequest(userQuery);
+  // API 요청 명령 처리 (GET, POST 등)
+  const methodMatch = userQuery.match(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\s+/i);
+  if (methodMatch) {
+    return await createApiRequest(userQuery);
+  }
+
+  // 명령어 인식 실패 시
+  return [
+    {
+      role: "assistant",
+      content: "API 요청 명령을 인식할 수 없습니다. 'GET /path', 'POST /path {데이터}' 등의 형식을 사용해주세요.",
+      codeBlock: false,
+    },
+  ];
 }
 
 async function createApiRequest(userQuery: string): Promise<ChatMessage[]> {
@@ -45,7 +56,14 @@ async function createApiRequest(userQuery: string): Promise<ChatMessage[]> {
         "headers": { 헤더 객체 },
         "body": 요청 본문 (있는 경우)
       }
-      오직 이 JSON 객체만 반환하고 다른 설명은 하지 마세요.`,
+      오직 이 JSON 객체만 반환하고 다른 설명은 하지 마세요.
+
+      {{변수}}가 요청에 포함된 경우 {{변수}}를 요청에서 분석하여 대치하여 응답하세요.
+      요청 예시) GET https://{{server}}/v1/pet/{{petId}} server=www.petstore.dev petId=123
+      응답 예시) {
+        "url": "https://www.petstore.dev/v1/pet/123",
+        "method": "GET"
+      }`,
     },
     {
       role: "user",

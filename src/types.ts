@@ -13,6 +13,7 @@ export interface SwaggerPath {
   description?: string;
   parameters?: SwaggerParameter[];
   requestBody?: any;
+  tags?: string[]; // 추가: API 태그 정보
 }
 
 export interface SwaggerParameter {
@@ -29,6 +30,7 @@ export interface SwaggerData {
   description?: string;
   baseUrl?: string;
   paths: SwaggerPath[];
+  apiVersion?: string; // 추가: OpenAPI/Swagger 버전 정보
 }
 
 export interface ApiRequest {

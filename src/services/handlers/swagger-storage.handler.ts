@@ -9,6 +9,7 @@ import {
   loadMultipleSwaggerData,
   loadAllSwaggerData
 } from "../utils/swagger-storage.util.js";
+import * as SwaggerParser from "swagger-parser";
 
 export async function swaggerStorageHandler(
   command: string,
@@ -141,8 +142,9 @@ async function handleLoadSwagger(args: string): Promise<ChatMessage[]> {
       },
       {
         role: "assistant",
-        content: `API 제목: ${swaggerData.title} (버전: ${swaggerData.version})
-사용 가능한 엔드포인트 수: ${swaggerData.paths.length}개`,
+        content: `API 제목: ${swaggerData.title || "제목 없음"} (버전: ${swaggerData.version || "버전 정보 없음"})
+  API 사양: ${swaggerData.apiVersion || "버전 정보 없음"}
+  사용 가능한 엔드포인트 수: ${swaggerData.paths?.length || 0}개`,
         codeBlock: false,
       },
     ];
@@ -286,7 +288,10 @@ async function handleLoadMultipleSwaggers(names: string[]): Promise<ChatMessage[
       });
 
       const loadedSummary = results.loaded
-        .map(({ name, data }) => `- ${name}: ${data.title} (v${data.version}), ${data.paths.length}개 엔드포인트`)
+        .map(({ name, data }) =>
+          `- ${name}: ${data.title || "제목 없음"} (v${data.version || "버전 없음"}), ` +
+          `API 사양: ${data.apiVersion || "정보 없음"}, ` +
+          `${data.paths?.length || 0}개 엔드포인트`)
         .join('\n');
 
       messages.push({
@@ -371,7 +376,10 @@ async function handleLoadAllSwaggers(): Promise<ChatMessage[]> {
 
     if (results.loaded.length > 0) {
       const loadedSummary = results.loaded
-        .map(({ name, data }) => `- ${name}: ${data.title} (v${data.version}), ${data.paths.length}개 엔드포인트`)
+        .map(({ name, data }) =>
+          `- ${name}: ${data.title || "제목 없음"} (v${data.version || "버전 없음"}), ` +
+          `API 사양: ${data.apiVersion || "정보 없음"}, ` +
+          `${data.paths?.length || 0}개 엔드포인트`)
         .join('\n');
 
       messages.push({
@@ -436,12 +444,13 @@ async function handleUseSwagger(name: string): Promise<ChatMessage[]> {
       },
       {
         role: "assistant",
-        content: `API 제목: ${current?.title} (버전: ${current?.version})
-사용 가능한 엔드포인트 수: ${current?.paths.length}개`,
+        content: `API 제목: ${current?.title || "제목 없음"} (버전: ${current?.version || "버전 정보 없음"})
+  API 사양: ${current?.apiVersion || "버전 정보 없음"}
+  사용 가능한 엔드포인트 수: ${current?.paths?.length || 0}개`,
         codeBlock: false,
       },
     ];
-  } else {
+  }else {
     return [
       {
         role: "assistant",

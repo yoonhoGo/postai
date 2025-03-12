@@ -5,25 +5,42 @@ export function helpHandler(): ChatMessage[] {
     {
       role: "assistant",
       content: `
-다음과 같은 명령을 사용할 수 있습니다:
+# POSTAI 명령어 가이드
 
-1. API 문서 로드: "https://petstore.swagger.io/v2/swagger.json API 문서를 로드해줘"
-2. Swagger 저장: "swagger save petstore" (현재 로드된 Swagger 문서 저장)
-3. Swagger 불러오기:
-   - "swagger load petstore" (단일 문서 불러오기)
-   - "swagger load petstore,userapi" (여러 문서 불러오기)
-   - "swagger load all" (모든 저장된 문서 불러오기)
-4. Swagger 전환: "swagger use petstore" (로드된 여러 문서 간 전환)
-5. Swagger 목록:
-   - "swagger list" (저장된 모든 문서 목록 보기)
-   - "swagger loaded" (현재 메모리에 로드된 문서 목록 보기)
-6. Swagger 삭제:
-   - "swagger delete petstore" (저장된 Swagger 문서 삭제)
-   - "swagger deleteall" (모든 저장된 Swagger 문서 삭제)
-7. 엔드포인트 검색: "사용자 관련 API를 찾아줘"
-8. API 호출: "GET /pet/findByStatus로 available 상태인 펫 목록을 가져와줘"
-9. 도움말: "help" 또는 "도움말"
-10. 대화형 질문: "어떤 API를 사용해서 새로운 사용자를 등록할 수 있을까?"
+## Swagger 문서 관리
+- API 문서 로드: "https://petstore.swagger.io/v2/swagger.json API 문서를 로드해줘"
+- 저장: "swagger save petstore"
+- 불러오기:
+  * 단일 문서: "swagger load petstore"
+  * 여러 문서: "swagger load petstore,userapi"
+  * 모든 문서: "swagger load all"
+- 전환: "swagger use petstore"
+- 목록 조회:
+  * 저장된 문서: "swagger list"
+  * 로드된 문서: "swagger loaded"
+- 삭제:
+  * 단일 문서: "swagger delete petstore"
+  * 모든 문서: "swagger deleteall"
+
+## API 검색
+- 키워드 검색: "사용자 관련 API 검색"
+- 기능 검색: "펫을 추가하는 API 찾기"
+- 경로 검색: "/user 관련 API 찾기"
+- 메서드 검색: "POST 메서드 API 검색"
+
+## API 요청
+- GET 요청: "GET /pet/findByStatus?status=available"
+- POST 요청: "POST /pet {'name': 'fluffy', 'status': 'available'}"
+- 요청 실행: "실행" 또는 "execute"
+- 요청 취소: "취소" 또는 "cancel"
+
+## 자연어 명령
+명시적 명령 외에도 자연어로 요청할 수 있습니다:
+- "사용자 목록을 가져와줘" → GET /user
+- "이름이 fluffy인 새 펫 등록해줘" → POST /pet 요청 준비
+- "펫스토어 API 문서 불러와" → swagger load petstore
+
+도움말: "help" 또는 "도움말"
       `,
       codeBlock: false,
     },

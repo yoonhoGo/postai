@@ -2,7 +2,8 @@ import { ChatMessage } from "../types.js";
 import { swaggerHandler } from "./handlers/swagger.handler.js";
 import { apiRequestHandler } from "./handlers/api-request.handler.js";
 import { helpHandler } from "./handlers/help.handler.js";
-import { generalQueryHandler } from "./handlers/general-query.handler.js";
+import { commandInterpretHandler } from "./handlers/command-interpret.handler.js";
+import { apiSearchHandler } from "./handlers/api-search.handler.js";
 
 // 사용자 쿼리 처리 함수
 export async function handleUserQuery(
@@ -11,22 +12,30 @@ export async function handleUserQuery(
 ): Promise<ChatMessage[]> {
   try {
     // 1. 도움말 처리
-    if (userQuery.toLowerCase() === "help" || userQuery.toLowerCase() === "도움말") {
+    if (
+      userQuery.toLowerCase() === "help" ||
+      userQuery.toLowerCase() === "도움말"
+    ) {
       return helpHandler();
     }
 
-    // 2. Swagger 관련 명령어 처리 (저장/불러오기 포함)
-    if (isSwaggerRelatedQuery(userQuery)) {
+    // 2. 명시적인 Swagger 관련 명령어 처리
+    if (isExplicitSwaggerCommand(userQuery)) {
       return await swaggerHandler(userQuery);
     }
 
-    // 3. API 요청 처리 - 새 요청 생성 또는 기존 요청 실행/취소
-    if (isApiRequestQuery(userQuery) || isRequestExecutionQuery(userQuery)) {
+    // 3. 명시적인 API 요청 처리 (HTTP 메서드로 시작하는 경우)
+    if (isExplicitApiRequestCommand(userQuery)) {
       return await apiRequestHandler(userQuery, conversation);
     }
 
-    // 4. 일반 대화형 질문 처리
-    return await generalQueryHandler(userQuery, conversation);
+    // 4. API 검색 명령어 처리
+    if (isApiSearchCommand(userQuery)) {
+      return await apiSearchHandler(userQuery);
+    }
+
+    // 5. 기타 명령어 해석 및 처리 (AI가 명령어를 해석하여 적절한 핸들러 호출)
+    return await commandInterpretHandler(userQuery, conversation);
   } catch (error) {
     return [
       {
@@ -38,26 +47,35 @@ export async function handleUserQuery(
   }
 }
 
-// 쿼리 유형 식별 함수들
-function isSwaggerRelatedQuery(query: string): boolean {
+// 명시적인 Swagger 명령어 확인
+function isExplicitSwaggerCommand(query: string): boolean {
+  // swagger로 시작하는 경우
+  return /^swagger\s+/i.test(query);
+}
+
+// 명시적인 API 요청 확인
+function isExplicitApiRequestCommand(query: string): boolean {
+  // HTTP 메서드로 시작하는 경우
   return (
-    query.includes("swagger") ||
-    query.includes("openapi") ||
-    query.includes("api 문서") ||
-    query.includes("http")
+    /^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)/i.test(query) ||
+    query.toLowerCase() === "실행" ||
+    query.toLowerCase() === "execute" ||
+    query.toLowerCase() === "취소" ||
+    query.toLowerCase() === "cancel"
   );
 }
 
-function isApiRequestQuery(query: string): boolean {
-  return /^(GET|POST|PUT|DELETE|PATCH)/i.test(query);
-}
-
-function isRequestExecutionQuery(query: string): boolean {
+// API 검색 명령어 확인
+function isApiSearchCommand(query: string): boolean {
   const lowerQuery = query.toLowerCase();
+  // 'search', 'find', '검색', '찾기' 등의 키워드를 포함하는 경우
   return (
-    lowerQuery === "실행" ||
-    lowerQuery === "execute" ||
-    lowerQuery === "취소" ||
-    lowerQuery === "cancel"
+    lowerQuery.includes("search") ||
+    lowerQuery.includes("find") ||
+    lowerQuery.includes("검색") ||
+    lowerQuery.includes("찾아") ||
+    lowerQuery.includes("찾기") ||
+    lowerQuery.includes("api") ||
+    (lowerQuery.includes("뭐") && lowerQuery.includes("있"))
   );
 }

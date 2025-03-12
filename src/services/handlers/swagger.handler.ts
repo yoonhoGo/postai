@@ -6,7 +6,7 @@ import { swaggerStorageHandler } from "./swagger-storage.handler.js";
 export async function swaggerHandler(
   userQuery: string,
 ): Promise<ChatMessage[]> {
-  // swagger 명령어 추출
+  // swagger 명령어 추출 - 방법 3 적용
   const commandMatch = userQuery.match(/^swagger\s+(\S+)/i);
   if (commandMatch) {
     const command = commandMatch[1].toLowerCase();
@@ -41,7 +41,7 @@ export async function swaggerHandler(
       {
         role: "assistant",
         content:
-          "API 문서의 URL을 찾을 수 없습니다. 올바른 URL을 입력해주세요.",
+          "Swagger 명령어를 인식할 수 없습니다. 'swagger [save|load|list|loaded|delete|use] [인수]' 형식을 사용하거나 Swagger URL을 입력해주세요.",
         codeBlock: false,
       },
     ];
@@ -60,12 +60,13 @@ export async function swaggerHandler(
     return [
       {
         role: "assistant",
-        content: `${swaggerData.title} API 문서(v${swaggerData.version})를 성공적으로 로드했습니다.`,
+        content: `${swaggerData.title || "API"} 문서(v${swaggerData.version || "N/A"})를 성공적으로 로드했습니다.`,
         codeBlock: false,
       },
       {
         role: "assistant",
-        content: `사용 가능한 엔드포인트 ${swaggerData.paths.length}개가 있습니다. 주요 엔드포인트:`,
+        content: `API 사양: ${swaggerData.apiVersion || "정보 없음"}
+    사용 가능한 엔드포인트 ${swaggerData.paths.length}개가 있습니다. 주요 엔드포인트:`,
         codeBlock: false,
       },
       {

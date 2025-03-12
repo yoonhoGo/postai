@@ -12,12 +12,12 @@ import { SwaggerData, SwaggerPath } from "../types.js";
 export const swaggerSearchTool = new DynamicTool({
   name: "swagger_search",
   description:
-    'Swagger 문서에서 operationId나 description 기반으로 API를 검색합니다. 입력: JSON 형식의 검색 기준 {"swaggerData": SwaggerData 객체, "query": 검색어, "type": "operationId" 또는 "description"}',
+    'Swagger 문서에서 API를 검색합니다. 입력: JSON 형식의 검색 기준 {"swaggerData": SwaggerData 객체, "query": 검색어, "fields": ["path", "operationId", "description", "method"]}',
   func: async (inputStr) => {
     try {
       // 입력 파싱
       const input = JSON.parse(inputStr);
-      const { swaggerData, query, type = "both" } = input;
+      const { swaggerData, query, fields = ["all"] } = input;
 
       if (!swaggerData || !query) {
         return JSON.stringify({
@@ -26,7 +26,7 @@ export const swaggerSearchTool = new DynamicTool({
       }
 
       // 검색 실행
-      const results = searchSwaggerPaths(swaggerData, query, type);
+      const results = searchSwaggerPaths(swaggerData, query, fields);
 
       return JSON.stringify(
         {
@@ -60,14 +60,31 @@ export const swaggerSearchTool = new DynamicTool({
 function searchSwaggerPaths(
   swaggerData: SwaggerData,
   query: string,
-  type: string = "both",
+  fields: string[] = ["all"],
 ): SwaggerPath[] {
   // 대소문자 구분 없이 검색하기 위해 쿼리를 소문자로 변환
   const lowerQuery = query.toLowerCase();
 
+  // 모든 필드 검색 옵션
+  const searchAll = fields.includes("all");
+
   return swaggerData.paths.filter((path) => {
+    // 경로(URL) 검색
+    if (searchAll || fields.includes("path")) {
+      if (path.path.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+    }
+
+    // HTTP 메서드 검색
+    if (searchAll || fields.includes("method")) {
+      if (path.method.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+    }
+
     // operationId 검색
-    if (type === "operationId" || type === "both") {
+    if (searchAll || fields.includes("operationId")) {
       if (
         path.operationId &&
         path.operationId.toLowerCase().includes(lowerQuery)
@@ -76,12 +93,22 @@ function searchSwaggerPaths(
       }
     }
 
-    // description 검색
-    if (type === "description" || type === "both") {
+    // description 및 summary 검색
+    if (searchAll || fields.includes("description")) {
       if (
         (path.summary && path.summary.toLowerCase().includes(lowerQuery)) ||
         (path.description &&
           path.description.toLowerCase().includes(lowerQuery))
+      ) {
+        return true;
+      }
+    }
+
+    // 태그 검색
+    if (searchAll || fields.includes("tags")) {
+      if (
+        path.tags &&
+        path.tags.some((tag) => tag.toLowerCase().includes(lowerQuery))
       ) {
         return true;
       }

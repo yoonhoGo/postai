@@ -2,6 +2,8 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 import { SwaggerData } from "../../types.js";
+import { parseSwagger } from "../../tools/swagger-parser.tool.js";
+import { OpenAPI } from "openapi-types";
 
 // 애플리케이션 데이터 디렉토리 설정
 const APP_DIR = path.join(os.homedir(), ".postai");
@@ -54,7 +56,9 @@ export async function loadSwaggerData(name: string): Promise<SwaggerData> {
   try {
     const filePath = path.join(SWAGGER_DIR, `${sanitizeFilename(name)}.json`);
     const fileContent = await fs.readFile(filePath, "utf-8");
-    return JSON.parse(fileContent) as SwaggerData;
+    const jsonSwagger = JSON.parse(fileContent) as OpenAPI.Document;
+
+    return parseSwagger(jsonSwagger);
   } catch (error) {
     console.error("Swagger 데이터 로드 오류:", error);
     throw new Error(

@@ -7,8 +7,15 @@ export const useChat = () => {
     {
       role: "assistant",
       content: `
-안녕하세요! API 탐색과 요청에 도움이 필요하신가요? 어떤 API를 사용하고 싶으신지 알려주세요.
-활용 예시는 \`help\` 혹은 \`도움말\`이라고 입력해 주세요.`,
+# POSTAI - HTTP API 클라이언트
+
+Swagger 문서 관리와 API 요청에 특화된 인터페이스입니다.
+
+시작하기:
+1. Swagger 문서 로드: "https://petstore.swagger.io/v2/swagger.json 로드해줘"
+2. API 요청: "GET /pet/findByStatus?status=available"
+
+도움말: \`help\` 또는 \`도움말\`을 입력하세요.`,
       codeBlock: false,
     },
   ]);
