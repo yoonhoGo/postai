@@ -10,7 +10,7 @@ async function initApp() {
     // await initSwaggerStorage();
 
     // Ink 렌더링 설정
-    const { waitUntilExit } = render(<App />);
+    const { waitUntilExit } = render(<App />, { patchConsole: true });
 
     // 프로그램이 종료될 때까지 대기
     await waitUntilExit();

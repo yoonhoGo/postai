@@ -1,28 +1,32 @@
-import { Box, Text } from "ink";
-import React from "react";
-import { create } from "zustand";
-
-interface ConsoleState {
-  message: string;
-  log: (message: string) => void;
-  clear: () => void;
-}
-
-export const useConsole = create<ConsoleState>((set) => ({
-  message: "",
-  log: (message: string) =>
-    set((state) => ({
-      message: state.message + "\n" + message,
-    })),
-  clear: () => set({ message: "" }),
-}));
+import { Box, Text, useStdout } from "ink";
+import patchConsole from "patch-console";
+import React, { useState } from "react";
 
 export const ConsolePanel = () => {
-  const message = useConsole((state) => state.message);
+  const { stdout } = useStdout();
+  const [message, setMessage] = useState("");
+
+  patchConsole((stream, data) => {
+    setMessage(message + `\n[${stream}] ${data}`);
+  });
 
   return (
-    <Box margin={1}>
-      <Text>{message}</Text>
+    <Box flexDirection="column" paddingX={2} paddingY={1}>
+      <Text dimColor>
+        Terminal dimensions:
+        {message}
+      </Text>
+
+      <Box marginTop={1}>
+        <Text>
+          Width: <Text bold>{stdout.columns}</Text>
+        </Text>
+      </Box>
+      <Box>
+        <Text>
+          Height: <Text bold>{stdout.rows}</Text>
+        </Text>
+      </Box>
     </Box>
   );
 };

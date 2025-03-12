@@ -41,14 +41,16 @@ export async function apiSearchHandler(
 }
 
 필드는 쿼리의 내용에 따라 적절하게 선택하세요. 기본값은 ["all"]입니다.
+쿼리에 complete 혹은 full이 있다면 필드는 ["all"]입니다.
 `;
 
     const extractResponse = await model.invoke([
-      { role: "system", content: extractPrompt },
+      { role: "user", content: extractPrompt },
     ]);
 
     // JSON 응답 파싱
     const jsonMatch = (extractResponse.content as string).match(/{[\s\S]*}/);
+
     if (!jsonMatch) {
       throw new Error("검색어 추출 실패");
     }

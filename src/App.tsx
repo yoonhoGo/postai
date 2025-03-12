@@ -4,6 +4,7 @@ import { ChatInterface } from "./components/ChatInterface.js";
 import { Header } from "./components/Header.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { useChat } from "./hooks/useChat.js";
+import { ConsolePanel } from "./components/ConsolePanel.js";
 
 const App = () => {
   const { messages, sendMessage, isProcessing } = useChat();
@@ -19,6 +20,7 @@ const App = () => {
         />
       </Box>
       <StatusBar isProcessing={isProcessing} />
+      <ConsolePanel />
     </Box>
   );
 };
