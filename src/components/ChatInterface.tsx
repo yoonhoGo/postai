@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Box, Text } from "ink";
-import TextInput from "ink-text-input";
+import { Box, Text, useInput } from "ink";
 import Spinner from "ink-spinner";
+import React, { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "../types.js";
+import InputArea from "./InputArea.js";
 import { MessageList } from "./MessageList.js";
-import { useInput } from "ink";
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -82,7 +81,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       <Box>
         <Text>{"> "}</Text>
-        <TextInput
+        <InputArea
           value={inputValue}
           onChange={setInputValue}
           onSubmit={handleSubmit}
