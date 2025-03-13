@@ -9,7 +9,6 @@ import {
   loadMultipleSwaggerData,
   loadAllSwaggerData
 } from "../utils/swagger-storage.util.js";
-import * as SwaggerParser from "swagger-parser";
 
 export async function swaggerStorageHandler(
   command: string,

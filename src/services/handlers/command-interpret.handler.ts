@@ -4,6 +4,7 @@ import { swaggerHandler } from "./swagger.handler.js";
 import { apiRequestHandler } from "./api-request.handler.js";
 import { useSwaggerStore } from "../../store/swagger.store.js";
 import { apiSearchHandler } from "./api-search.handler.js";
+import { langfuseHandler } from "../../langfuse.js";
 
 export async function commandInterpretHandler(
   userQuery: string,
@@ -37,7 +38,9 @@ export async function commandInterpretHandler(
   ];
 
   try {
-    const response = await model.invoke(messages);
+    const response = await model.invoke(messages, {
+      callbacks: [langfuseHandler]
+    });
     const content = response.content as string;
 
     // JSON 응답 추출 시도

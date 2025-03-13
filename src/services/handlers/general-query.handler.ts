@@ -1,5 +1,6 @@
 import { ChatMessage } from "../../types.js";
 import { model } from "../../model.js";
+import { langfuseHandler } from "../../langfuse.js";
 
 export async function generalQueryHandler(
   userQuery: string,
@@ -12,7 +13,9 @@ export async function generalQueryHandler(
 
   messages.push({ content: userQuery, role: "user" });
 
-  const response = await model.invoke(messages);
+  const response = await model.invoke(messages, {
+    callbacks: [langfuseHandler]
+  });
 
   return [
     {

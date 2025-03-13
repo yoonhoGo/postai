@@ -5,6 +5,7 @@ import {
   extractApiConfig,
   findPreviousApiConfig,
 } from "../utils/api-request.util.js";
+import { langfuseHandler } from "../../langfuse.js";
 
 export async function apiRequestHandler(
   userQuery: string,
@@ -73,7 +74,9 @@ async function createApiRequest(userQuery: string): Promise<ChatMessage[]> {
 
   try {
     // Ollama 모델을 사용하여 API 요청 구성
-    const modelResponse = await model.invoke(messages);
+    const modelResponse = await model.invoke(messages, {
+      callbacks: [langfuseHandler],
+    });
     const modelContent = modelResponse.content as string;
 
     // JSON 추출 시도

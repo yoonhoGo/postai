@@ -2,6 +2,7 @@ import { ChatMessage } from "../../types.js";
 import { useSwaggerStore } from "../../store/swagger.store.js";
 import { model } from "../../model.js";
 import { swaggerSearchTool } from "../../tools/swagger-search.tool.js";
+import { langfuseHandler } from "../../langfuse.js";
 
 /**
  * API 검색 처리 핸들러
@@ -43,9 +44,12 @@ export async function apiSearchHandler(
 필드는 쿼리의 내용에 따라 적절하게 선택하세요. 기본값은 ["all"]입니다.
 `;
 
-    const extractResponse = await model.invoke([
-      { role: "system", content: extractPrompt },
-    ]);
+    const extractResponse = await model.invoke(
+      [{ role: "system", content: extractPrompt }],
+      {
+        callbacks: [langfuseHandler],
+      },
+    );
 
     // JSON 응답 파싱
     const jsonMatch = (extractResponse.content as string).match(/{[\s\S]*}/);
@@ -120,12 +124,17 @@ ${JSON.stringify(formattedResults, null, 2)}
 이 API들 중에서 사용자의 요구에 가장 적합한 API를 선택하고, 사용 예시를 제공하세요.
 `;
 
-    const suggestionResponse = await model.invoke([
+    const suggestionResponse = await model.invoke(
+      [
+        {
+          role: "system",
+          content: suggestPrompt,
+        },
+      ],
       {
-        role: "system",
-        content: suggestPrompt,
+        callbacks: [langfuseHandler],
       },
-    ]);
+    );
 
     // 검색 결과 테이블 추가
     messages.push({
