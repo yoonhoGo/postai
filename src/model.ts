@@ -19,6 +19,6 @@ import { ChatOllama } from "@langchain/ollama";
  * @type {ChatOllama}
  */
 export const model = new ChatOllama({
-  model: "llama3.1",  // 사용할 모델 - llama3.1 채택
+  model: "gemma3:12b",  // 사용할 모델 - llama3.1 채택
   temperature: 0      // 0으로 설정하여 결정적 출력 생성
 });
