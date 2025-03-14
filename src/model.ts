@@ -9,6 +9,14 @@
  */
 
 import { ChatOllama } from "@langchain/ollama";
+import { BedrockChat } from "@langchain/community/chat_models/bedrock";
+
+export const model = new BedrockChat({
+  // model: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+  model: "us.meta.llama3-3-70b-instruct-v1:0",
+  region: 'us-east-1',
+  profile: 'query'
+});
 
 /**
  * Ollama 모델 인스턴스
@@ -18,7 +26,13 @@ import { ChatOllama } from "@langchain/ollama";
  *
  * @type {ChatOllama}
  */
-export const model = new ChatOllama({
-  model: "gemma3:12b",  // 사용할 모델 - llama3.1 채택
-  temperature: 0      // 0으로 설정하여 결정적 출력 생성
-});
+ // export const model = new ChatOllama({
+ //   model: "llama3.1",
+ //   temperature: 0
+ // });
+
+ // 한국어 응답용 모델 추가
+ export const koreanModel = new ChatOllama({
+   model: "gemma3:4b", // Gemma3 모델
+   temperature: 0
+ });

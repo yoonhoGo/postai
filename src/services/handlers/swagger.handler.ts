@@ -52,6 +52,18 @@ export async function swaggerHandler(
     const result = await swaggerTool.func(url);
     const swaggerData = JSON.parse(result);
 
+    // Swagger 데이터 검증
+    if (!swaggerData || !swaggerData.paths || swaggerData.paths.length === 0) {
+      return [
+        {
+          role: "assistant",
+          content:
+            "유효한 API 정보가 없는 Swagger 문서입니다. 다른 URL을 시도해주세요.",
+          codeBlock: false,
+        },
+      ];
+    }
+
     // Swagger 데이터를 상태 저장소에 저장
     useSwaggerStore.getState().setCurrent(swaggerData);
     useSwaggerStore.getState().addToHistory(url);

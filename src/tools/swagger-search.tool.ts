@@ -62,6 +62,11 @@ function searchSwaggerPaths(
   query: string,
   fields: string[] = ["all"],
 ): SwaggerPath[] {
+  // 검색 결과가 비어있으면 빈 배열 반환
+  if (!swaggerData || !swaggerData.paths || swaggerData.paths.length === 0) {
+    return [];
+  }
+
   // 대소문자 구분 없이 검색하기 위해 쿼리를 소문자로 변환
   const lowerQuery = query.toLowerCase();
 

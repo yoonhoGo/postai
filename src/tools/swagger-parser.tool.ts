@@ -11,7 +11,7 @@
 import { DynamicTool } from "langchain/tools";
 import { OpenAPI, OpenAPIV2, OpenAPIV3, OpenAPIV3_1 } from "openapi-types";
 import SwaggerParser from "swagger-parser";
-import { SwaggerData } from "types.js";
+import { SwaggerData } from "../types.js";
 
 /**
  * Swagger 파싱 도구
@@ -69,6 +69,10 @@ export function parseSwagger(api: OpenAPI.Document): SwaggerData {
     // 각 메서드별 상세 정보 추출
     for (const method of methods) {
       const operation = pathObj[method];
+
+      // 응답 정보 추출
+      const responses = operation.responses || {};
+
       pathDetails.push({
         path,
         method: method.toUpperCase(),
@@ -76,12 +80,12 @@ export function parseSwagger(api: OpenAPI.Document): SwaggerData {
         description: operation.description || "",
         parameters: operation.parameters || [],
         requestBody: operation.requestBody || null,
+        responses, // 응답 정보 추가
         operationId: operation.operationId || "",
-        tags: operation.tags || [], // 태그 정보 추출
+        tags: operation.tags || [],
       });
     }
   }
-
   // API 버전 정보 확인 (모든 버전에서 info 객체가 필요함)
   if (!api.info) {
     throw new Error(

@@ -1,14 +1,10 @@
 import React from 'react';
 import { render } from 'ink';
 import App from './App.js';
-import { initSwaggerStorage } from './services/utils/swagger-storage.util.js';
 
 // 애플리케이션 초기화
 async function initApp() {
   try {
-    // Swagger 저장소 초기화
-    // await initSwaggerStorage();
-
     // Ink 렌더링 설정
     const { waitUntilExit } = render(<App />);
 

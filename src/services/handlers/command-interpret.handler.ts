@@ -26,10 +26,16 @@ export async function commandInterpretHandler(
   2. API 요청: 'GET|POST|PUT|DELETE|PATCH [경로] [요청 데이터]'
   3. API 검색: 'search [검색어]'
 
+  중요 제약사항:
+  - Swagger 문서가 로드되지 않은 경우 API 검색이나 요청을 처리할 수 없습니다.
+  - 확실하지 않은 정보는 제공하지 마세요.
+  - API 요청이나 검색 명령을 해석할 때는 현재 로드된 문서의 내용만 기반으로 해석하세요.
+
   사용자의 의도를 분석하여 다음 형식으로 응답해주세요:
   {
     "commandType": "swagger" | "api" | "search",
-    "command": "변환된 명령어"
+    "command": "변환된 명령어",
+    "confidence": "high" | "medium" | "low" // 해석 신뢰도 추가
   }`;
 
   const messages = [
@@ -51,6 +57,18 @@ export async function commandInterpretHandler(
       }
 
       const parsedResponse = JSON.parse(jsonMatch[0]);
+
+      // 신뢰도가 낮은 명령은 거부
+      if (parsedResponse.confidence === "low" &&
+         (parsedResponse.commandType === "api" || parsedResponse.commandType === "search")) {
+        return [
+          {
+            role: "assistant",
+            content: "요청하신 명령을 처리하기 위한 충분한 정보가 없습니다. 더 구체적인 명령어를 입력하거나, 'swagger list'로 사용 가능한 API 문서를 확인해주세요.",
+            codeBlock: false,
+          },
+        ];
+      }
 
       // 명령어 유형 확인 및 적절한 핸들러 호출
       if (parsedResponse.commandType === "swagger") {

@@ -13,7 +13,22 @@ export interface SwaggerPath {
   description?: string;
   parameters?: SwaggerParameter[];
   requestBody?: any;
-  tags?: string[]; // 추가: API 태그 정보
+  responses?: Record<string, SwaggerResponse>;
+  tags?: string[];
+  _verified?: boolean; // 검증 플래그 추가
+  _source?: string;    // 데이터 출처 추가
+}
+
+// 추가: 응답 정보 인터페이스
+export interface SwaggerResponse {
+  description?: string;
+  content?: Record<
+    string,
+    {
+      schema?: any;
+      examples?: any;
+    }
+  >;
 }
 
 export interface SwaggerParameter {

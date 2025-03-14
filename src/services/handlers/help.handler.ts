@@ -7,6 +7,12 @@ export function helpHandler(): ChatMessage[] {
       content: `
 # POSTAI 명령어 가이드
 
+## 주의사항
+- POSTAI는 현재 로드된 Swagger 문서에 있는 API만 검색하고 요청할 수 있습니다.
+- 존재하지 않는 API에 대한 잘못된 정보가 제공될 경우 'swagger list'로 현재 로드된 문서를 확인하고,
+  'swagger load <이름>'으로 다른 문서를 불러오세요.
+- 검색 결과는 항상 현재 로드된 문서 범위 내에서만 제공됩니다.
+
 ## Swagger 문서 관리
 - API 문서 로드: "https://petstore.swagger.io/v2/swagger.json API 문서를 로드해줘"
 - 저장: "swagger save petstore"
@@ -27,6 +33,8 @@ export function helpHandler(): ChatMessage[] {
 - 기능 검색: "펫을 추가하는 API 찾기"
 - 경로 검색: "/user 관련 API 찾기"
 - 메서드 검색: "POST 메서드 API 검색"
+- 요청 정보 검색: "사용자 생성 API의 요청 파라미터 검색"
+- 응답 정보 검색: "펫 API의 응답 데이터 형식 검색"
 
 ## API 요청
 - GET 요청: "GET /pet/findByStatus?status=available"

@@ -3,6 +3,10 @@ import { useSwaggerStore } from "../../store/swagger.store.js";
 import { model } from "../../model.js";
 import { swaggerSearchTool } from "../../tools/swagger-search.tool.js";
 import { langfuseHandler } from "../../langfuse.js";
+import {
+  swaggerRequestSearchTool,
+  swaggerResponseSearchTool,
+} from "../../tools/index.js";
 
 /**
  * API 검색 처리 핸들러
@@ -30,18 +34,26 @@ export async function apiSearchHandler(
   }
 
   try {
-    // 1. AI를 사용하여 사용자 쿼리에서 검색어 추출
+    // 1. AI를 사용하여 사용자 쿼리에서 검색어와 검색 유형 추출
     const extractPrompt = `
-사용자가 API를 검색하고자 합니다. 사용자의 쿼리에서 키워드를 추출하여 JSON 형식으로 반환하세요.
+사용자가 API를 검색하고자 합니다. 사용자의 쿼리에서 키워드와 검색 유형을 추출하여 JSON 형식으로 반환하세요.
 쿼리: "${userQuery}"
 
 다음 형식으로 반환하세요:
 {
   "searchTerms": "추출된 검색어",
-  "fields": ["검색할 필드 - path, method, operationId, description, tags 중에서 선택"]
+  "searchType": "general", "request", "response" 중 하나
 }
 
-필드는 쿼리의 내용에 따라 적절하게 선택하세요. 기본값은 ["all"]입니다.
+searchType 결정 기준:
+- "request": 요청 매개변수, 요청 본문, 입력값 등에 관한 검색
+- "response": 응답 데이터, 응답 형식, 출력값 등에 관한 검색
+- "general": 특정한 언급이 없으면 일반 검색
+
+예시:
+- "사용자 생성 API의 요청 본문 찾기" => { "searchTerms": "사용자 생성", "searchType": "request" }
+- "펫 API의 응답 데이터 검색" => { "searchTerms": "펫", "searchType": "response" }
+- "사용자 관련 API 검색" => { "searchTerms": "사용자", "searchType": "general" }
 `;
 
     const extractResponse = await model.invoke(
@@ -59,48 +71,75 @@ export async function apiSearchHandler(
 
     const searchParams = JSON.parse(jsonMatch[0]);
 
-    // 2. 추출된 검색어로 Swagger 문서 검색
+    // 2. 검색 유형에 따라 적절한 도구 선택 및 검색 수행
+    let searchResults;
     const searchInput = JSON.stringify({
       swaggerData: currentSwagger,
       query: searchParams.searchTerms,
-      fields: searchParams.fields || ["all"],
     });
 
-    const searchResults = await swaggerSearchTool.func(searchInput);
-    const parsedResults = JSON.parse(searchResults);
-
-    // 3. 검색 결과 응답 생성
-    if (parsedResults.error) {
-      return [
-        {
-          role: "assistant",
-          content: `검색 중 오류가 발생했습니다: ${parsedResults.message}`,
-          codeBlock: false,
-        },
-      ];
+    switch (searchParams.searchType) {
+      case "request":
+        searchResults = await swaggerRequestSearchTool.func(searchInput);
+        break;
+      case "response":
+        searchResults = await swaggerResponseSearchTool.func(searchInput);
+        break;
+      default: // general
+        const generalInput = JSON.stringify({
+          swaggerData: currentSwagger,
+          query: searchParams.searchTerms,
+          fields: ["all"],
+        });
+        searchResults = await swaggerSearchTool.func(generalInput);
     }
 
-    if (parsedResults.resultsCount === 0) {
+    const parsedResults = JSON.parse(searchResults);
+
+    // 엄격한 검증 단계 추가
+    if (parsedResults.results) {
+      // 검증된 결과만 필터링
+      parsedResults.results = parsedResults.results.filter(
+        (result: any) =>
+          // 검증 플래그가 있거나, 현재 Swagger에 실제로 존재하는지 확인
+          result._verified ||
+          currentSwagger.paths.some(
+            (p) => p.path === result.path && p.method === result.method,
+          ),
+      );
+
+      // 결과 수 업데이트
+      parsedResults.resultsCount = parsedResults.results.length;
+    }
+
+    // 결과가 없는 경우 명확한 메시지 제공
+    if (!parsedResults.results || parsedResults.resultsCount === 0) {
       return [
         {
           role: "assistant",
-          content: `"${searchParams.searchTerms}" 검색어와 일치하는 API를 찾을 수 없습니다.`,
+          content: `"${searchParams.searchTerms}" 검색어와 일치하는 API를 현재 로드된 Swagger 문서에서 찾을 수 없습니다.`,
           codeBlock: false,
         },
         {
           role: "assistant",
           content:
-            "다른 검색어로 시도하거나, 'swagger list' 명령으로 다른 API 문서를 로드해보세요.",
+            "다른 검색어를 사용하거나 다른 Swagger 문서를 로드해 보세요.",
           codeBlock: false,
         },
       ];
     }
 
-    // 검색 결과 요약 응답
+    // 검색 결과 요약 응답 생성
+    const searchTypeText = {
+      request: "요청 정보",
+      response: "응답 정보",
+      general: "API",
+    }[searchParams.searchType as "request" | "response" | "general"];
+
     const messages: ChatMessage[] = [
       {
         role: "assistant",
-        content: `"${searchParams.searchTerms}" 검색어에 대해 ${parsedResults.resultsCount}개의 API를 찾았습니다:`,
+        content: `"${searchParams.searchTerms}" 검색어에 대해 ${parsedResults.resultsCount}개의 ${searchTypeText}를 찾았습니다:`,
         codeBlock: false,
       },
     ];
@@ -122,6 +161,12 @@ export async function apiSearchHandler(
 ${JSON.stringify(formattedResults, null, 2)}
 
 이 API들 중에서 사용자의 요구에 가장 적합한 API를 선택하고, 사용 예시를 제공하세요.
+
+중요:
+1. 오직 제공된 목록에 있는 API만 참조하세요.
+2. 목록에 없는 API는 언급하지 마세요.
+3. API가 없다면 "적합한 API를 찾을 수 없습니다"라고 응답하세요.
+4. 정확한 경로와 매개변수만 사용하세요.
 `;
 
     const suggestionResponse = await model.invoke(
@@ -150,6 +195,26 @@ ${JSON.stringify(formattedResults, null, 2)}
       codeBlock: false,
     });
 
+    // 검색 결과에 메타데이터 추가
+    const searchMetaInfo = {
+      query: searchParams.searchTerms,
+      type: searchParams.searchType,
+      sourceDocTitle: currentSwagger.title,
+      sourceDocVersion: currentSwagger.version,
+      totalPaths: currentSwagger.paths.length,
+      timestamp: new Date().toISOString(),
+    };
+
+    // 검색 결과가 있는 경우에만 메타데이터 포함
+    if (parsedResults.resultsCount > 0) {
+      messages.push({
+        role: "assistant",
+        content: JSON.stringify(searchMetaInfo, null, 2),
+        codeBlock: true,
+        codeLanguage: "json",
+      });
+    }
+
     return messages;
   } catch (error) {
     return [
@@ -162,9 +227,6 @@ ${JSON.stringify(formattedResults, null, 2)}
   }
 }
 
-/**
- * API 검색 결과를 테이블 형식으로 포맷팅
- */
 function formatApiResultsTable(apis: any[]): string {
   if (apis.length === 0) return "결과 없음";
 
@@ -174,15 +236,18 @@ function formatApiResultsTable(apis: any[]): string {
 
   // 테이블 내용
   apis.forEach((api) => {
-    // 긴 경로는 잘라서 표시
-    const truncPath =
-      api.path.length > 30 ? api.path.substring(0, 27) + "..." : api.path;
-    const truncSummary =
-      api.summary.length > 30
-        ? api.summary.substring(0, 27) + "..."
-        : api.summary;
+    // null 또는 undefined 값 처리
+    const path = api.path || "";
+    const method = api.method || "";
+    const summary = api.summary || "(설명 없음)";
+    const operationId = api.operationId || "(ID 없음)";
 
-    table += `| ${api.method} | ${truncPath} | ${truncSummary} | ${api.operationId} |\n`;
+    // 긴 경로는 잘라서 표시
+    const truncPath = path.length > 30 ? path.substring(0, 27) + "..." : path;
+    const truncSummary =
+      summary.length > 30 ? summary.substring(0, 27) + "..." : summary;
+
+    table += `| ${method} | ${truncPath} | ${truncSummary} | ${operationId} |\n`;
   });
 
   return table;

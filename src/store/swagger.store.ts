@@ -2,9 +2,10 @@ import { create } from "zustand";
 import { SwaggerData } from "../types.js";
 
 interface SwaggerState {
-  current: SwaggerData | null;        // 현재 활성화된 Swagger
-  loadedSwaggers: Map<string, SwaggerData>; // 로드된 모든 Swagger (이름: 데이터)
-  history: string[];                  // 이전에 로드한 Swagger URL 목록
+  current: SwaggerData | null;
+  loadedSwaggers: Map<string, SwaggerData>;
+  history: string[];
+  baseUrl: string;                 // 추가: 기본 URL 저장
 
   // 액션
   setCurrent: (data: SwaggerData, name?: string) => void;
@@ -14,12 +15,14 @@ interface SwaggerState {
   clearSwaggers: () => void;
   addToHistory: (url: string) => void;
   getAllLoadedNames: () => string[];
+  setBaseUrl: (url: string) => void; // 추가: baseUrl 설정 액션
 }
 
 export const useSwaggerStore = create<SwaggerState>((set, get) => ({
   current: null,
   loadedSwaggers: new Map(),
   history: [],
+  baseUrl: "",  // 초기값 추가
 
   setCurrent: (data: SwaggerData, name?: string) => {
     set({ current: data });
@@ -77,4 +80,8 @@ export const useSwaggerStore = create<SwaggerState>((set, get) => ({
     })),
 
   getAllLoadedNames: () => Array.from(get().loadedSwaggers.keys()),
+
+  setBaseUrl: (url: string) => {
+    set({ baseUrl: url });
+  },
 }));

@@ -11,7 +11,8 @@
 
 import axios, { AxiosError } from "axios";
 import { DynamicTool } from "langchain/tools";
-import { ApiRequest } from "types.js";
+import { useSwaggerStore } from "../store/swagger.store.js";
+import { ApiRequest } from "../types.js";
 
 /**
  * API 요청 도구
@@ -41,10 +42,30 @@ export const apiRequestTool = new DynamicTool({
       if (!url) {
         return "URL이 필요합니다";
       }
+
+      // URL이 상대 경로인 경우 baseUrl 적용
+      let requestUrl = url;
+      if (!url.startsWith("http")) {
+        const baseUrl = useSwaggerStore.getState().baseUrl;
+        if (baseUrl) {
+          requestUrl = baseUrl + (url.startsWith("/") ? url : "/" + url);
+        } else {
+          return JSON.stringify(
+            {
+              error: true,
+              message:
+                "상대 경로를 사용하려면 먼저 'set-base-url' 명령어로 기본 URL을 설정하세요.",
+            },
+            null,
+            2,
+          );
+        }
+      }
+
       // axios를 사용하여 HTTP 요청 수행
       const response = await axios({
         method: method.toLowerCase(),
-        url,
+        url: requestUrl,
         headers,
         data,
         params,
