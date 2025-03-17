@@ -2,6 +2,7 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { model } from "../model.js";
 import { StructuredOutputParser } from "langchain/output_parsers";
 import { z } from "zod";
+import { langfuseHandler } from "../langfuse.js";
 
 const prompt = `
 당신은 API 응답 데이터와 로그/에러 메시지를 사용자가 이해하기 쉬운 형식으로 변환하는 전문가입니다.
@@ -156,8 +157,12 @@ export function createOutputFormattingAgent() {
           httpResponse: httpResponseStr,
         });
 
-        const response = await model.invoke(formattedPrompt);
-        const parsedOutput = await outputParser.parse(response.content as string);
+        const response = await model.invoke(formattedPrompt, {
+          callbacks: [langfuseHandler],
+        });
+        const parsedOutput = await outputParser.parse(
+          response.content as string,
+        );
 
         return parsedOutput;
       } catch (error) {

@@ -6,6 +6,7 @@ import {
 import { model } from "../model.js";
 import { StructuredOutputParser } from "langchain/output_parsers";
 import { z } from "zod";
+import { langfuseHandler } from "../langfuse.js";
 
 const prompt = `
   당신은 다양한 API 인증 방식을 처리하고 관리하는 전문가입니다.
@@ -184,7 +185,9 @@ export function createAuthManagementAgent() {
           apiRequest: apiRequestStr,
         });
 
-        const response = await model.invoke(formattedPrompt);
+        const response = await model.invoke(formattedPrompt, {
+          callbacks: [langfuseHandler],
+        });
         const parsedOutput = await outputParser.parse(
           response.content as string,
         );

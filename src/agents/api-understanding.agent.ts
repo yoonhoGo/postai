@@ -6,6 +6,7 @@ import {
 import { model } from "../model.js";
 import { StructuredOutputParser } from "langchain/output_parsers";
 import { z } from "zod";
+import { langfuseHandler } from "../langfuse.js";
 
 const prompt = `
   당신은 사용자의 자연어 요청을 분석하여 API 요청 의도와 구조를 파악하는 전문가입니다.
@@ -129,7 +130,9 @@ export function createApiUnderstandingAgent() {
           userRequest: input.userRequest,
         });
 
-        const response = await model.invoke(formattedPrompt);
+        const response = await model.invoke(formattedPrompt, {
+          callbacks: [langfuseHandler],
+        });
         const parsedOutput = await outputParser.parse(
           response.content as string,
         );

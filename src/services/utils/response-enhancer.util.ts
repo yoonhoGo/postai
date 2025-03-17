@@ -7,7 +7,7 @@ import { model } from "../../model.js";
  */
 export async function enhanceAgentResponse(
   rawMessages: ChatMessage[],
-  context: string = ""
+  context: string = "",
 ): Promise<ChatMessage[]> {
   // 코드 블록이나 구조화된 데이터는 건너뛰고 텍스트 응답만 개선
   const enhancedMessages: ChatMessage[] = [];
@@ -34,16 +34,19 @@ export async function enhanceAgentResponse(
 
 컨텍스트: ${context}`;
 
-      const response = await model.invoke([
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message.content }
-      ], {
-        callbacks: [langfuseHandler]
-      });
+      const response = await model.invoke(
+        [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message.content },
+        ],
+        {
+          callbacks: [langfuseHandler],
+        },
+      );
 
       enhancedMessages.push({
         ...message,
-        content: response.content as string
+        content: response.content as string,
       });
     } catch (error) {
       // 개선 중 오류 발생 시 원본 메시지 사용

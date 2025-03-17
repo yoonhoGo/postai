@@ -2,6 +2,7 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { model } from "../model.js";
 import { StructuredOutputParser } from "langchain/output_parsers";
 import { z } from "zod";
+import { langfuseHandler } from "../langfuse.js";
 
 const prompt = `
 당신은 HTTP API 요청 처리 시스템의 수퍼바이저입니다. 사용자의 요청을 이해하고 다른 전문 에이전트들에게 작업을 할당하여 전체 흐름을 조정합니다.
@@ -66,6 +67,20 @@ const supervisorSchema = z.object({
 
 export type SupervisorResult = z.infer<typeof supervisorSchema>;
 
+// JSON 응답 추출 함수
+function extractJsonFromResponse(text: string): string {
+  console.log("[info] JSON Parser from response:");
+  console.log("=================================");
+  console.log(text);
+  console.log("=================================");
+  // JSON 형식을 찾는 정규식 패턴
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return jsonMatch[0];
+  }
+  throw new Error("JSON 형식을 찾을 수 없습니다.");
+}
+
 // 에이전트 생성 함수
 export function createSupervisorAgent() {
   const supervisorPrompt = ChatPromptTemplate.fromTemplate(`
@@ -74,7 +89,18 @@ export function createSupervisorAgent() {
     대화 기록: {conversation_history}
     사용자 요청: {userRequest}
 
-    위 정보를 바탕으로 사용자의 의도를 파악하고 다음 작업을 결정해주세요. 결과를 JSON 형식으로만 출력하세요.
+    위 정보를 바탕으로 사용자의 의도를 파악하고 다음 작업을 결정해주세요.
+
+    중요: 반드시 아래 형식의 완전한 JSON으로만 응답하세요. 다른 텍스트나 설명을 추가하지 마세요.
+
+    {{
+      "action": "process_api_request | request_more_info | provide_help | swagger_operation | other_operation",
+      "userRequest": "사용자 요청 요약",
+      "nextStep": "다음 단계에 대한 설명",
+      "missingInfo": ["필요한 추가 정보 목록"],
+      "helpMessage": "도움말 메시지(있는 경우)",
+      "swaggerCommand": "Swagger 명령어(있는 경우)"
+    }}
   `);
 
   const outputParser = StructuredOutputParser.fromZodSchema(supervisorSchema);
@@ -90,10 +116,33 @@ export function createSupervisorAgent() {
           conversation_history: input.conversation_history || "이전 대화 없음",
         });
 
-        const response = await model.invoke(formattedPrompt);
-        const parsedOutput = await outputParser.parse(response.content as string);
+        // 응답 최대 토큰 수를 명시적으로 설정하여 충분한 응답 길이 확보
+        const response = await model.invoke(formattedPrompt, {
+          callbacks: [langfuseHandler],
+        });
 
-        return parsedOutput;
+        let responseContent = response.content as string;
+        console.log("[info] 원본 응답:", responseContent);
+
+        try {
+          // JSON 추출 및 파싱 시도
+          const jsonContent = extractJsonFromResponse(responseContent);
+          console.log("[info] 추출된 JSON:", jsonContent);
+
+          // 파싱 시도
+          const parsedOutput = await outputParser.parse(jsonContent);
+          return parsedOutput;
+        } catch (parseError) {
+          console.error("JSON 파싱 오류:", parseError);
+
+          // 파싱 실패 시 기본 응답 제공
+          return {
+            action: "process_api_request",
+            userRequest: input.userRequest,
+            nextStep: "사용자 요청을 처리합니다.",
+            missingInfo: [],
+          };
+        }
       } catch (error) {
         console.error("슈퍼바이저 에이전트 오류:", error);
         return {

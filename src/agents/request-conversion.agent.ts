@@ -6,6 +6,7 @@ import {
 import { model } from "../model.js";
 import { StructuredOutputParser } from "langchain/output_parsers";
 import { z } from "zod";
+import { langfuseHandler } from "../langfuse.js";
 
 const prompt = `
 당신은 API 요청 정보를 axios 라이브러리에서 사용할 수 있는 JSON 파라미터로 변환하는 전문가입니다.
@@ -179,8 +180,12 @@ export function createRequestConversionAgent() {
           apiRequest: apiRequestStr,
         });
 
-        const response = await model.invoke(formattedPrompt);
-        const parsedOutput = await outputParser.parse(response.content as string);
+        const response = await model.invoke(formattedPrompt, {
+          callbacks: [langfuseHandler],
+        });
+        const parsedOutput = await outputParser.parse(
+          response.content as string,
+        );
 
         return parsedOutput;
       } catch (error) {

@@ -17,12 +17,15 @@ export async function translateUserInput(input: string): Promise<string> {
 2. 기술 용어는 영어 전문용어로 정확히 번역하세요
 3. 번역된 내용만 응답하세요.`;
 
-    const response = await koreanModel.invoke([
-      { role: "system", content: systemPrompt },
-      { role: "user", content: input }
-    ], {
-      callbacks: [langfuseHandler]
-    });
+    const response = await koreanModel.invoke(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: input },
+      ],
+      {
+        callbacks: [langfuseHandler],
+      },
+    );
 
     return response.content as string;
   } catch (error) {

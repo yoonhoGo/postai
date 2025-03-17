@@ -11,12 +11,14 @@
 import { ChatOllama } from "@langchain/ollama";
 import { BedrockChat } from "@langchain/community/chat_models/bedrock";
 
-export const model = new BedrockChat({
-  // model: "anthropic.claude-3-5-sonnet-20240620-v1:0",
-  model: "us.meta.llama3-3-70b-instruct-v1:0",
-  region: 'us-east-1',
-  profile: 'query'
-});
+// export const model = new BedrockChat({
+//   // model: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+//   model: "us.meta.llama3-3-70b-instruct-v1:0",
+//   region: 'us-east-1',
+//   profile: 'query',
+//   maxRetries: 3,
+//   maxTokens: 1_000,
+// });
 
 /**
  * Ollama 모델 인스턴스
@@ -26,10 +28,10 @@ export const model = new BedrockChat({
  *
  * @type {ChatOllama}
  */
- // export const model = new ChatOllama({
- //   model: "llama3.1",
- //   temperature: 0
- // });
+ export const model = new ChatOllama({
+   model: "llama3.1",
+   temperature: 0
+ });
 
  // 한국어 응답용 모델 추가
  export const koreanModel = new ChatOllama({

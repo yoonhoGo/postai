@@ -1,12 +1,15 @@
 import { AgentExecutor, createOpenAIToolsAgent } from "langchain/agents";
-import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import {
+  ChatPromptTemplate,
+  MessagesPlaceholder,
+} from "@langchain/core/prompts";
 import { model } from "../model.js";
 import {
   apiRequestTool,
   swaggerTool,
   swaggerSearchTool,
   swaggerRequestSearchTool,
-  swaggerResponseSearchTool
+  swaggerResponseSearchTool,
 } from "../tools/index.js";
 import { langfuseHandler } from "../langfuse.js";
 import { ChatMessage } from "../types.js";
@@ -55,7 +58,7 @@ const tools = [
   swaggerTool,
   swaggerSearchTool,
   swaggerRequestSearchTool,
-  swaggerResponseSearchTool
+  swaggerResponseSearchTool,
 ];
 
 // 에이전트 생성 및 초기화 함수
@@ -65,7 +68,7 @@ export const initPostAIAgent = async () => {
     const agent = await createOpenAIToolsAgent({
       llm: model,
       tools,
-      prompt
+      prompt,
     });
 
     // 에이전트 실행기 생성
@@ -74,9 +77,9 @@ export const initPostAIAgent = async () => {
       tools,
       verbose: true,
       returnIntermediateSteps: true,
-      handleParsingErrors: true,  // 추가: 파싱 오류 처리
-      maxIterations: 5,           // 추가: 최대 반복 횟수 설정
-      earlyStoppingMethod: "force" // 추가: 강제 종료 방법 설정
+      handleParsingErrors: true, // 추가: 파싱 오류 처리
+      maxIterations: 5, // 추가: 최대 반복 횟수 설정
+      earlyStoppingMethod: "force", // 추가: 강제 종료 방법 설정
     });
 
     return {
@@ -96,31 +99,38 @@ export const initPostAIAgent = async () => {
 `;
 
           // 에이전트 호출
-          const result = await agentExecutor.invoke({
-            input: contextInfo + "\n사용자 쿼리: " + userQuery,
-            chat_history: chatHistory.map(msg => ({
-              role: msg.role,
-              content: msg.content
-            })),
-          }, {
-            callbacks: [langfuseHandler],
-          });
+          const result = await agentExecutor.invoke(
+            {
+              input: contextInfo + "\n사용자 쿼리: " + userQuery,
+              chat_history: chatHistory.map((msg) => ({
+                role: msg.role,
+                content: msg.content,
+              })),
+            },
+            {
+              callbacks: [langfuseHandler],
+            },
+          );
 
           // 에이전트 응답 파싱
           return parseAgentResponse(result);
         } catch (error) {
           console.error("에이전트 실행 오류:", error);
-          return [{
-            role: "assistant",
-            content: `에이전트 처리 중 오류가 발생했습니다: ${(error as Error).message}`,
-            codeBlock: false
-          }];
+          return [
+            {
+              role: "assistant",
+              content: `에이전트 처리 중 오류가 발생했습니다: ${(error as Error).message}`,
+              codeBlock: false,
+            },
+          ];
         }
-      }
+      },
     };
   } catch (error) {
     console.error("에이전트 초기화 오류:", error);
-    throw new Error(`에이전트를 초기화할 수 없습니다: ${(error as Error).message}`);
+    throw new Error(
+      `에이전트를 초기화할 수 없습니다: ${(error as Error).message}`,
+    );
   }
 };
 
@@ -138,13 +148,13 @@ function parseAgentResponse(result: ChainValues): ChatMessage[] {
       messages.push({
         role: "assistant",
         content: `${lastStep.action.tool} 도구 실행 결과:`,
-        codeBlock: false
+        codeBlock: false,
       });
 
       messages.push({
         role: "assistant",
         content: lastStep.observation,
-        codeBlock: true
+        codeBlock: true,
       });
     }
 
@@ -155,12 +165,14 @@ function parseAgentResponse(result: ChainValues): ChatMessage[] {
 
       if (codeBlockMatch) {
         // 코드 블록 이전 텍스트
-        const beforeCode = finalOutput.substring(0, finalOutput.indexOf("```")).trim();
+        const beforeCode = finalOutput
+          .substring(0, finalOutput.indexOf("```"))
+          .trim();
         if (beforeCode) {
           messages.push({
             role: "assistant",
             content: beforeCode,
-            codeBlock: false
+            codeBlock: false,
           });
         }
 
@@ -169,43 +181,45 @@ function parseAgentResponse(result: ChainValues): ChatMessage[] {
           role: "assistant",
           content: codeBlockMatch[2],
           codeBlock: true,
-          codeLanguage: codeBlockMatch[1] || "json"
+          codeLanguage: codeBlockMatch[1] || "json",
         });
 
         // 코드 블록 이후 텍스트
-        const afterCode = finalOutput.substring(
-          finalOutput.indexOf("```") + codeBlockMatch[0].length
-        ).trim();
+        const afterCode = finalOutput
+          .substring(finalOutput.indexOf("```") + codeBlockMatch[0].length)
+          .trim();
 
         if (afterCode) {
           messages.push({
             role: "assistant",
             content: afterCode,
-            codeBlock: false
+            codeBlock: false,
           });
         }
       } else {
         messages.push({
           role: "assistant",
           content: finalOutput,
-          codeBlock: false
+          codeBlock: false,
         });
       }
     } else {
       messages.push({
         role: "assistant",
         content: finalOutput,
-        codeBlock: false
+        codeBlock: false,
       });
     }
 
     return messages;
   } catch (error) {
     console.error("응답 파싱 오류:", error);
-    return [{
-      role: "assistant",
-      content: `응답 파싱 중 오류가 발생했습니다: ${(error as Error).message}`,
-      codeBlock: false
-    }];
+    return [
+      {
+        role: "assistant",
+        content: `응답 파싱 중 오류가 발생했습니다: ${(error as Error).message}`,
+        codeBlock: false,
+      },
+    ];
   }
 }

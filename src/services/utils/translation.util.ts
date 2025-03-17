@@ -4,7 +4,7 @@ import { langfuseHandler } from "../../langfuse.js";
 
 export async function translateToKorean(
   messages: ChatMessage[],
-  context: string = ""
+  context: string = "",
 ): Promise<ChatMessage[]> {
   const translatedMessages: ChatMessage[] = [];
 
@@ -25,16 +25,19 @@ export async function translateToKorean(
 
 컨텍스트: ${context}`;
 
-      const response = await koreanModel.invoke([
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message.content }
-      ], {
-        callbacks: [langfuseHandler]
-      });
+      const response = await koreanModel.invoke(
+        [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message.content },
+        ],
+        {
+          callbacks: [langfuseHandler],
+        },
+      );
 
       translatedMessages.push({
         ...message,
-        content: response.content as string
+        content: response.content as string,
       });
     } catch (error) {
       console.warn("번역 중 오류 발생:", error);

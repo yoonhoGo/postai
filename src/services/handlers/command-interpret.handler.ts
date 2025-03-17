@@ -45,7 +45,7 @@ export async function commandInterpretHandler(
 
   try {
     const response = await model.invoke(messages, {
-      callbacks: [langfuseHandler]
+      callbacks: [langfuseHandler],
     });
     const content = response.content as string;
 
@@ -59,12 +59,16 @@ export async function commandInterpretHandler(
       const parsedResponse = JSON.parse(jsonMatch[0]);
 
       // 신뢰도가 낮은 명령은 거부
-      if (parsedResponse.confidence === "low" &&
-         (parsedResponse.commandType === "api" || parsedResponse.commandType === "search")) {
+      if (
+        parsedResponse.confidence === "low" &&
+        (parsedResponse.commandType === "api" ||
+          parsedResponse.commandType === "search")
+      ) {
         return [
           {
             role: "assistant",
-            content: "요청하신 명령을 처리하기 위한 충분한 정보가 없습니다. 더 구체적인 명령어를 입력하거나, 'swagger list'로 사용 가능한 API 문서를 확인해주세요.",
+            content:
+              "요청하신 명령을 처리하기 위한 충분한 정보가 없습니다. 더 구체적인 명령어를 입력하거나, 'swagger list'로 사용 가능한 API 문서를 확인해주세요.",
             codeBlock: false,
           },
         ];
