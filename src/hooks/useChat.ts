@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
-import { initPostAIAgent } from "../agents/postai-agent.js";
+import { initApiAgentChain, executeApiRequestChain } from "../agents/index.js";
 import { langfuseHandler } from "../langfuse.js";
 import { model } from "../model.js";
-import {
-  apiRequestHandler,
-  executeApiRequest,
-} from "../services/handlers/api-request.handler.js";
+// import { translateUserInput } from "../services/utils/language.util.js";
+import { enhanceAgentResponse } from "../services/utils/response-enhancer.util.js";
+// import { translateToKorean } from "../services/utils/translation.util.js";
+import { useSwaggerStore } from "../store/swagger.store.js";
+import { ChatMessage } from "../types.js";
+import { findPreviousApiConfig } from "../services/utils/api-request.util.js";
+import { apiRequestHandler } from "../services/handlers/api-request.handler.js";
 import { helpHandler } from "../services/handlers/help.handler.js";
 import { swaggerStorageHandler } from "../services/handlers/swagger-storage.handler.js";
 import { swaggerHandler } from "../services/handlers/swagger.handler.js";
-import { translateUserInput } from "../services/utils/language.util.js";
-import { enhanceAgentResponse } from "../services/utils/response-enhancer.util.js";
-import { translateToKorean } from "../services/utils/translation.util.js";
-import { useSwaggerStore } from "../store/swagger.store.js";
-import { ChatMessage } from "../types.js";
+import {
+  createHttpRequestAgent,
+  createOutputFormattingAgent,
+} from "../agents/index.js";
 
 export const useChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -24,24 +26,32 @@ export const useChat = () => {
 
 Swagger 문서 관리와 API 요청에 특화된 인터페이스입니다.
 
-시작하기:
-1. Swagger 문서 로드: "https://petstore.swagger.io/v2/swagger.json 로드해줘"
-2. API 요청: "GET /pet/findByStatus?status=available"
-
 도움말: \`help\` 또는 \`도움말\`을 입력하세요.`,
       codeBlock: false,
     },
   ]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [agent, setAgent] = useState<any>(null);
+  const [agentChain, setAgentChain] = useState<any>(null);
   const [isAgentReady, setIsAgentReady] = useState<boolean>(false);
 
-  // 에이전트 초기화
+  // HTTP 요청과 출력 포맷팅을 위한 개별 에이전트
+  const [httpAgent, setHttpAgent] = useState<any>(null);
+  const [outputAgent, setOutputAgent] = useState<any>(null);
+
+  // 에이전트 체인 초기화
   useEffect(() => {
-    const loadAgent = async () => {
+    const initAgents = async () => {
       try {
-        const postAIAgent = await initPostAIAgent();
-        setAgent(postAIAgent);
+        // 에이전트 체인 초기화
+        const chain = await initApiAgentChain();
+        setAgentChain(chain);
+
+        // 개별 에이전트 초기화 (실행 단계에서 필요)
+        const httpRequestAgent = createHttpRequestAgent();
+        const outputFormattingAgent = createOutputFormattingAgent();
+
+        setHttpAgent(httpRequestAgent);
+        setOutputAgent(outputFormattingAgent);
         setIsAgentReady(true);
       } catch (error) {
         console.error("에이전트 초기화 실패:", error);
@@ -50,18 +60,18 @@ Swagger 문서 관리와 API 요청에 특화된 인터페이스입니다.
           {
             role: "assistant",
             content: `AI 에이전트를 초기화하지 못했습니다. 다음을 확인해주세요:
-  1. 인터넷 연결 상태
-  2. AWS 자격 증명 설정
-  3. 충분한 권한이 있는지 여부
+1. 인터넷 연결 상태
+2. AWS 자격 증명 설정
+3. 충분한 권한이 있는지 여부
 
-  자세한 오류: ${(error as Error).message}`,
+자세한 오류: ${(error as Error).message}`,
             codeBlock: false,
           },
         ]);
       }
     };
 
-    loadAgent();
+    initAgents();
   }, []);
 
   const sendMessage = useCallback(
@@ -80,7 +90,6 @@ Swagger 문서 관리와 API 요청에 특화된 인터페이스입니다.
         );
         if (baseUrlMatch) {
           const baseUrl = baseUrlMatch[1].trim();
-          // 전역 상태에 baseUrl 저장
           useSwaggerStore.getState().setBaseUrl(baseUrl);
 
           setMessages((prev) => [
@@ -103,8 +112,50 @@ Swagger 문서 관리와 API 요청에 특화된 인터페이스입니다.
             content.toLowerCase() === "실행" ||
             content.toLowerCase() === "execute"
           ) {
-            const apiResponse = await executeApiRequest(messages);
-            setMessages((prev) => [...prev, ...apiResponse]);
+            // 이전 API 요청 설정 찾기
+            const requestConfig = findPreviousApiConfig(messages);
+            if (!requestConfig) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "assistant",
+                  content: "실행할 API 요청을 찾을 수 없습니다.",
+                  codeBlock: false,
+                },
+              ]);
+              setIsProcessing(false);
+              return;
+            }
+
+            // 새로운 에이전트 체인으로 API 요청 실행
+            if (httpAgent && outputAgent) {
+              const apiResponses = await executeApiRequestChain(
+                requestConfig,
+                httpAgent,
+                outputAgent,
+              );
+
+              // 응답 개선 및 한국어 번역
+              const enhancedResponses = await enhanceAgentResponse(
+                apiResponses,
+                `API 요청 실행: ${requestConfig.method} ${requestConfig.url}`,
+              );
+
+              setMessages((prev) => [...prev, ...enhancedResponses]);
+
+              // 한국어 번역 추가
+              // const translatedResponses = await translateToKorean(
+              //   enhancedResponses,
+              //   `API 요청 실행: ${requestConfig.method} ${requestConfig.url}`,
+              // );
+
+              // setMessages((prev) => [...prev, ...translatedResponses]);
+            } else {
+              // 기존 방식으로 실행 (호환성 유지)
+              const apiResponse = await apiRequestHandler(content, messages);
+              setMessages((prev) => [...prev, ...apiResponse]);
+            }
+
             setIsProcessing(false);
             return;
           } else if (
@@ -130,8 +181,34 @@ Swagger 문서 관리와 API 요청에 특화된 인터페이스입니다.
         );
 
         if (apiRequestMatch) {
-          const apiResponse = await apiRequestHandler(content, messages);
-          setMessages((prev) => [...prev, ...apiResponse]);
+          if (agentChain && isAgentReady) {
+            // 새로운 에이전트 체인으로 처리
+            const agentResponses = await agentChain.runWithContext(
+              content,
+              messages,
+            );
+
+            // 응답 개선 및 한국어 번역
+            const enhancedResponses = await enhanceAgentResponse(
+              agentResponses,
+              `사용자 쿼리: ${content}`,
+            );
+
+            setMessages((prev) => [...prev, ...enhancedResponses]);
+
+            // 한국어 번역 추가
+            // const translatedResponses = await translateToKorean(
+            //   enhancedResponses,
+            //   `사용자 쿼리: ${content}`,
+            // );
+
+            // setMessages((prev) => [...prev, ...translatedResponses]);
+          } else {
+            // 기존 방식으로 처리 (호환성 유지)
+            const apiResponse = await apiRequestHandler(content, messages);
+            setMessages((prev) => [...prev, ...apiResponse]);
+          }
+
           setIsProcessing(false);
           return;
         }
@@ -148,8 +225,32 @@ Swagger 문서 관리와 API 요청에 특화된 인터페이스입니다.
             content.includes("DELETE") ||
             content.includes("/"))
         ) {
-          // API 요청 명령어 추출을 위한 프롬프트
-          const extractPrompt = `
+          if (agentChain && isAgentReady) {
+            // 새로운 에이전트 체인으로 처리
+            const agentResponses = await agentChain.runWithContext(
+              content,
+              messages,
+            );
+
+            // 응답 개선 및 한국어 번역
+            const enhancedResponses = await enhanceAgentResponse(
+              agentResponses,
+              `사용자 쿼리: ${content}`,
+            );
+
+            setMessages((prev) => [...prev, ...enhancedResponses]);
+
+            // 한국어 번역 추가
+            // const translatedResponses = await translateToKorean(
+            //   enhancedResponses,
+            //   `사용자 쿼리: ${content}`,
+            // );
+
+            // setMessages((prev) => [...prev, ...translatedResponses]);
+          } else {
+            // 기존 코드 유지 (호환성 측면)
+            // API 요청 명령어 추출을 위한 프롬프트
+            const extractPrompt = `
   사용자가 API 요청을 하려고 합니다. 다음 메시지에서 HTTP 메서드, 경로, 파라미터를 추출하여
   'HTTP메서드 경로 {파라미터}' 형식으로 반환해주세요. 예를 들어 'GET /users/123'과 같은 형식입니다.
   파라미터가 있으면 JSON 형식으로 포함해주세요.
@@ -158,24 +259,26 @@ Swagger 문서 관리와 API 요청에 특화된 인터페이스입니다.
 
   오직 추출된 API 요청 형식만 반환하고 다른 설명은 하지 마세요.`;
 
-          const extractResponse = await model.invoke(
-            [{ role: "system", content: extractPrompt }],
-            {
-              callbacks: [langfuseHandler],
-            },
-          );
+            const extractResponse = await model.invoke(
+              [{ role: "system", content: extractPrompt }],
+              {
+                callbacks: [langfuseHandler],
+              },
+            );
 
-          const extractedCommand = (extractResponse.content as string).trim();
-          const apiResponse = await apiRequestHandler(
-            extractedCommand,
-            messages,
-          );
-          setMessages((prev) => [...prev, ...apiResponse]);
+            const extractedCommand = (extractResponse.content as string).trim();
+            const apiResponse = await apiRequestHandler(
+              extractedCommand,
+              messages,
+            );
+            setMessages((prev) => [...prev, ...apiResponse]);
+          }
+
           setIsProcessing(false);
           return;
         }
 
-        // Swagger 명령어 직접 처리 (정규식으로 식별)
+        // Swagger 명령어 직접 처리
         const swaggerCommandMatch = content.match(
           /^swagger\s+(\S+)(?:\s+(.+))?$/i,
         );
@@ -212,28 +315,44 @@ Swagger 문서 관리와 API 요청에 특화된 인터페이스입니다.
           return;
         }
 
-        const processedContent = await translateUserInput(content);
+        // 에이전트 체인 사용 (일반 메시지 처리)
+        if (agentChain && isAgentReady) {
+          // const processedContent = await translateUserInput(content);
+          // const agentResponses = await agentChain.runWithContext(
+          //   processedContent,
+          //   messages,
+          // );
+          const agentResponses = await agentChain.runWithContext(
+            content,
+            messages,
+          );
 
-        // 에이전트 호출
-        const agentResponses = await agent.runWithContext(
-          processedContent,
-          messages,
-        );
+          // 응답 개선 및 한국어 번역
+          const enhancedResponses = await enhanceAgentResponse(
+            agentResponses,
+            `사용자 쿼리: ${content}`,
+          );
 
-        // 응답 개선 및 한국어 번역 (둘 다 수행)
-        const enhancedResponses = await enhanceAgentResponse(
-          agentResponses,
-          `사용자 쿼리: ${content}`,
-        );
+          setMessages((prev) => [...prev, ...enhancedResponses]);
 
-        // 한국어 번역 추가
-        const translatedResponses = await translateToKorean(
-          enhancedResponses,
-          `사용자 쿼리: ${content}`,
-        );
+          // 한국어 번역 추가
+          // const translatedResponses = await translateToKorean(
+          //   enhancedResponses,
+          //   `사용자 쿼리: ${content}`,
+          // );
 
-        // 번역된 응답 메시지 추가
-        setMessages((prev) => [...prev, ...translatedResponses]);
+          // setMessages((prev) => [...prev, ...translatedResponses]);
+        } else {
+          // 에이전트 체인이 준비되지 않은 경우
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "에이전트가 준비 중입니다. 잠시 후 다시 시도해주세요.",
+              codeBlock: false,
+            },
+          ]);
+        }
       } catch (error) {
         // 오류 메시지도 번역
         const errorMessage: ChatMessage = {
@@ -242,13 +361,14 @@ Swagger 문서 관리와 API 요청에 특화된 인터페이스입니다.
           codeBlock: false,
         };
 
-        const translatedError = await translateToKorean([errorMessage]);
-        setMessages((prev) => [...prev, ...translatedError]);
+        setMessages((prev) => [...prev, errorMessage]);
+        // const translatedError = await translateToKorean([errorMessage]);
+        // setMessages((prev) => [...prev, ...translatedError]);
       } finally {
         setIsProcessing(false);
       }
     },
-    [messages, agent, isAgentReady],
+    [messages, agentChain, isAgentReady, httpAgent, outputAgent],
   );
 
   return {
